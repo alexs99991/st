@@ -25,7 +25,6 @@
 </head>
 <body>
     <div class="min-h-screen">
-        <!-- HEADER -->
         <header class="header text-white py-5 shadow-lg">
             <div class="max-w-7xl mx-auto px-6 flex items-center justify-between">
                 <div class="flex items-center gap-3">
@@ -33,103 +32,72 @@
                     <h1 class="text-2xl font-semibold">Система Учета Целей</h1>
                 </div>
                 <div class="flex gap-8 text-base">
-                    <div onclick="switchTab(0)" class="nav-tab active cursor-pointer" id="tab0">📝 Ввод</div>
-                    <div onclick="switchTab(1)" class="nav-tab cursor-pointer" id="tab1">📊 Аналитика</div>
-                    <div onclick="switchTab(2)" class="nav-tab cursor-pointer" id="tab2">🗺 Карта</div>
-                    <div onclick="switchTab(3)" class="nav-tab cursor-pointer" id="tab3">📋 Список</div>
+                    <div onclick="switchTab(0)" class="nav-tab active cursor-pointer px-4 py-2" id="tab0">📝 Ввод</div>
+                    <div onclick="switchTab(1)" class="nav-tab cursor-pointer px-4 py-2" id="tab1">📊 Аналитика</div>
+                    <div onclick="switchTab(2)" class="nav-tab cursor-pointer px-4 py-2" id="tab2">🗺 Карта</div>
+                    <div onclick="switchTab(3)" class="nav-tab cursor-pointer px-4 py-2" id="tab3">📋 Список</div>
                 </div>
             </div>
         </header>
 
         <div class="max-w-7xl mx-auto px-6 py-8">
-            
-            <!-- === TAB 1: ВВОД === -->
+            <!-- TAB 1: ВВОД -->
             <div id="content0" class="tab-content active">
                 <div class="card p-8 max-w-lg mx-auto">
                     <h2 class="text-2xl font-semibold mb-6 text-center">Добавить новую цель</h2>
-                    
                     <div class="space-y-5">
                         <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium mb-1">Дата</label>
-                                <input type="date" id="date" class="form-input">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium mb-1">Время</label>
-                                <input type="time" id="time" class="form-input">
-                            </div>
+                            <div><label class="block text-sm font-medium mb-1">Дата</label>
+                                <input type="date" id="date" class="form-input"></div>
+                            <div><label class="block text-sm font-medium mb-1">Время</label>
+                                <input type="time" id="time" class="form-input"></div>
                         </div>
-
                         <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium mb-1">X (СК-42)</label>
-                                <input type="text" id="coordX" class="form-input font-mono" placeholder="5301923">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium mb-1">Y (СК-42)</label>
-                                <input type="text" id="coordY" class="form-input font-mono" placeholder="6662759">
-                            </div>
+                            <div><label class="block text-sm font-medium mb-1">X (СК-42)</label>
+                                <input type="text" id="coordX" class="form-input font-mono" placeholder="5301923"></div>
+                            <div><label class="block text-sm font-medium mb-1">Y (СК-42)</label>
+                                <input type="text" id="coordY" class="form-input font-mono" placeholder="6662759"></div>
                         </div>
-
                         <div>
                             <label class="block text-sm font-medium mb-1">Частота</label>
-                            <input type="text" id="frequency" class="form-input" placeholder="Например: 145.2 МГц">
+                            <input type="text" id="frequency" class="form-input" placeholder="145.2 МГц">
                         </div>
-
                         <div>
                             <label class="block text-sm font-medium mb-1">Тип цели</label>
-                            <input type="text" id="targetType" class="form-input" placeholder="РЛС, Артиллерия, Склад...">
+                            <input type="text" id="targetType" class="form-input" placeholder="РЛС, Артиллерия...">
                         </div>
-
                         <div>
                             <label class="block text-sm font-medium mb-1">Примечание</label>
                             <textarea id="note" rows="3" class="form-input"></textarea>
                         </div>
-
                         <button onclick="addTarget()" 
                                 class="w-full bg-[#6B1E2A] hover:bg-[#4A141E] text-white py-4 rounded-xl text-lg font-semibold">
-                            <i class="fa fa-plus mr-2"></i>Добавить запись
+                            Добавить запись
                         </button>
                     </div>
                 </div>
             </div>
 
-            <!-- === TAB 2: АНАЛИТИКА === -->
-            <div id="content1" class="tab-content">
-                <div class="card p-8 text-center">
-                    <h2 class="text-2xl font-semibold mb-6">Аналитика</h2>
-                    <p class="text-gray-500">Раздел в разработке (скоро будет дашборд)</p>
-                </div>
-            </div>
-
-            <!-- === TAB 3: КАРТА === -->
-            <div id="content2" class="tab-content">
-                <div class="card p-4">
-                    <div id="map" class="map-container"></div>
-                </div>
-            </div>
-
-            <!-- === TAB 4: СПИСОК === -->
-            <div id="content3" class="tab-content">
-                <div class="card">
-                    <div id="targetList" class="divide-y max-h-[75vh] overflow-auto"></div>
-                </div>
-            </div>
+            <!-- Остальные табы -->
+            <div id="content1" class="tab-content"><div class="card p-8 text-center">Аналитика (в разработке)</div></div>
+            <div id="content2" class="tab-content"><div class="card p-4"><div id="map" class="map-container"></div></div></div>
+            <div id="content3" class="tab-content"><div class="card" id="targetList"></div></div>
         </div>
     </div>
 
     <script>
+        // ===================== НАСТРОЙКИ =====================
         const SUPABASE_URL = 'https://neb6khhpx5aylyezl6u1oa.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_NEb6KHHpx5aYLyEZl6U1OA_y68ZalLF';
         
         const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         let map, allTargets = [];
 
+        // ===================== ИНИЦИАЛИЗАЦИЯ =====================
         async function init() {
             const now = new Date();
             document.getElementById('date').value = now.toISOString().split('T')[0];
-            document.getElementById('time').value = now.getHours().toString().padStart(2,'0') + ':' + 
-                                                   now.getMinutes().toString().padStart(2,'0');
+            document.getElementById('time').value = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
 
             initMap();
             await loadTargets();
@@ -142,8 +110,7 @@
         }
 
         async function loadTargets() {
-            const { data, error } = await supabase.from('targets').select('*').order('created_at', { ascending: false });
-            if (error) return console.error(error);
+            const { data } = await supabase.from('targets').select('*').order('created_at', { ascending: false });
             allTargets = data || [];
             renderList();
         }
@@ -157,17 +124,13 @@
             const type = document.getElementById('targetType').value.trim() || 'Неизвестно';
             const note = document.getElementById('note').value.trim();
 
-            if (!x || !y) return alert('Введите координаты X и Y!');
+            if (!x || !y) return alert('Введите X и Y!');
 
-            const { error } = await supabase.from('targets').insert([{
-                date, time, x, y, frequency, type, note
-            }]);
-
+            const { error } = await supabase.from('targets').insert([{ date, time, x, y, frequency, type, note }]);
             if (error) alert('Ошибка: ' + error.message);
             else {
-                alert('✅ Цель добавлена!');
+                alert('✅ Добавлено!');
                 loadTargets();
-                // очистка
                 document.getElementById('coordX').value = '';
                 document.getElementById('coordY').value = '';
                 document.getElementById('frequency').value = '';
@@ -178,28 +141,24 @@
 
         function renderList() {
             const container = document.getElementById('targetList');
-            let html = `<div class="p-4 bg-gray-50 font-medium">Всего целей: ${allTargets.length}</div>`;
-            
+            let html = `<div class="p-4 bg-gray-50 font-medium">Всего: ${allTargets.length}</div>`;
             allTargets.forEach(t => {
                 html += `
-                <div class="p-5 hover:bg-zinc-50 flex justify-between items-start border-b">
+                <div class="p-5 border-b hover:bg-zinc-50 flex justify-between">
                     <div>
                         <div class="font-semibold">${t.type}</div>
-                        <div class="text-sm text-gray-600">${t.date} ${t.time}</div>
-                        <div class="text-sm">X: ${t.x} | Y: ${t.y}</div>
-                        ${t.frequency ? `<div class="text-sm text-blue-600">Частота: ${t.frequency}</div>` : ''}
+                        <div class="text-sm">${t.date} ${t.time}</div>
+                        <div>X:${t.x} Y:${t.y}</div>
+                        ${t.frequency ? `<div class="text-blue-600">Частота: ${t.frequency}</div>` : ''}
                     </div>
-                    <button onclick="event.stopImmediatePropagation(); deleteTarget('${t.id}')" 
-                            class="text-red-600 text-xl">
-                        🗑
-                    </button>
+                    <button onclick="deleteTarget('${t.id}')" class="text-red-600">🗑</button>
                 </div>`;
             });
-            container.innerHTML = html || '<div class="p-10 text-center text-gray-400">Пока нет записей</div>';
+            container.innerHTML = html || '<p class="p-10 text-center text-gray-400">Пока пусто</p>';
         }
 
         async function deleteTarget(id) {
-            if (confirm('Удалить цель?')) {
+            if (confirm('Удалить?')) {
                 await supabase.from('targets').delete().eq('id', id);
                 loadTargets();
             }
@@ -209,11 +168,9 @@
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.getElementById('content' + n).classList.add('active');
             
-            document.querySelectorAll('.nav-tab').forEach((el, i) => {
-                el.classList.toggle('active', i === n);
-            });
-
-            if (n === 2 && map) setTimeout(() => map.invalidateSize(), 300);
+            document.querySelectorAll('.nav-tab').forEach((el, i) => el.classList.toggle('active', i === n));
+            
+            if (n === 2 && map) setTimeout(() => map.invalidateSize(), 200);
         }
 
         window.onload = init;
