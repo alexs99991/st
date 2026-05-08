@@ -247,7 +247,6 @@
     </div>
 
     <script>
-        // ... (весь JavaScript остаётся тем же, что в предыдущей версии)
         const SUPABASE_URL = 'https://neb6khhpx5aylyezl6u1oa.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_NEb6KHHpx5aYLyEZl6U1OA_y68ZalLF';
         
@@ -266,8 +265,174 @@
             switchTab(0);
         }
 
-        // (Остальной JavaScript остаётся без изменений из предыдущей версии)
-        // ... (вставь весь скрипт из предыдущего сообщения сюда)
+        function initMap() {
+            map = L.map('map').setView([47.85, 35.15], 10);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+            map.on('click', function(e) {
+                if (confirm('Добавить цель в этой точке?')) {
+                    addFromMap(e.latlng.lat, e.latlng.lng);
+                }
+            });
+        }
+
+        async function loadTargets() {
+            const { data } = await supabase.from('targets').select('*').order('created_at', { ascending: false });
+            allTargets = data || [];
+            renderList();
+            plotMarkers();
+            updateDashboard();
+        }
+
+        function getColor(type) {
+            const t = (type || '').toLowerCase();
+            if (t.includes('арт')) return '#ef4444';
+            if (t.includes('рлс')) return '#3b82f6';
+            if (t.includes('склад')) return '#22c55e';
+            return '#8b5cf6';
+        }
+
+        function plotMarkers() {
+            markers.forEach(m => map.removeLayer(m));
+            markers = [];
+            allTargets.forEach(t => {
+                if (!t.lat || !t.lng) return;
+                const marker = L.circleMarker([t.lat, t.lng], {
+                    radius: 9, fillColor: getColor(t.type), color: '#fff', weight: 3, fillOpacity: 0.9
+                }).addTo(map);
+                marker.bindPopup(`<b>${t.type}</b><br>${t.date} ${t.time}`);
+                marker.on('click', () => showDetail(t));
+                markers.push(marker);
+            });
+        }
+
+        async function addTarget() {
+            const date = document.getElementById('date').value;
+            const time = document.getElementById('time').value;
+            const x = parseFloat(document.getElementById('coordX').value);
+            const y = parseFloat(document.getElementById('coordY').value);
+            const frequency = document.getElementById('frequency').value.trim();
+            const type = document.getElementById('targetType').value.trim() || 'Другое';
+            const note = document.getElementById('note').value.trim();
+
+            if (!x || !y) return alert('Введите X и Y');
+
+            let lat = null, lng = null;
+            try {
+                const wgs = proj4("SK42", "WGS84", [x, y]);
+                lng = wgs[0]; lat = wgs[1];
+            } catch(e) {}
+
+            const { error } = await supabase.from('targets').insert([{ date, time, x, y, frequency, type, note, lat, lng }]);
+            if (error) alert('Ошибка: ' + error.message);
+            else {
+                alert('✅ Цель добавлена!');
+                loadTargets();
+                document.getElementById('coordX').value = '';
+                document.getElementById('coordY').value = '';
+                document.getElementById('frequency').value = '';
+                document.getElementById('targetType').value = '';
+                document.getElementById('note').value = '';
+            }
+        }
+
+        async function addFromMap(lat, lng) {
+            const type = prompt('Тип цели:', 'Другое') || 'Другое';
+            const freq = prompt('Частота:', '');
+            const note = prompt('Примечание:', 'Добавлено с карты');
+
+            const { error } = await supabase.from('targets').insert([{
+                date: new Date().toISOString().split('T')[0],
+                time: new Date().toTimeString().slice(0,5),
+                frequency: freq, type, note, lat, lng
+            }]);
+            if (!error) loadTargets();
+        }
+
+        function renderList(filtered = null) {
+            const data = filtered || allTargets;
+            const container = document.getElementById('targetList');
+            let html = `<div class="p-4 bg-gray-50 font-medium">Всего целей: ${data.length}</div>`;
+            data.forEach(t => {
+                html += `
+                <div onclick="showDetailById('${t.id}')" class="p-5 border-b hover:bg-zinc-50 cursor-pointer flex justify-between items-start">
+                    <div>
+                        <div class="font-semibold">${t.type}</div>
+                        <div class="text-sm">${t.date} ${t.time}</div>
+                        <div class="text-xs">X:${t.x||'-'} Y:${t.y||'-'} ${t.frequency ? '| '+t.frequency : ''}</div>
+                    </div>
+                    <button onclick="event.stopImmediatePropagation(); deleteTarget('${t.id}')" class="text-red-600 text-2xl">🗑</button>
+                </div>`;
+            });
+            container.innerHTML = html || '<p class="p-10 text-center text-gray-400">Пока нет целей</p>';
+        }
+
+        function filterList() {
+            const term = document.getElementById('search').value.toLowerCase();
+            const filtered = allTargets.filter(t => 
+                (t.type||'').toLowerCase().includes(term) || 
+                (t.note||'').toLowerCase().includes(term) ||
+                (t.frequency||'').toLowerCase().includes(term)
+            );
+            renderList(filtered);
+        }
+
+        function showDetail(t) {
+            currentId = t.id;
+            document.getElementById('modalTitle').textContent = t.type;
+            document.getElementById('modalContent').innerHTML = `
+                <div class="grid grid-cols-2 gap-3 text-sm">
+                    <div><b>Дата:</b> ${t.date}</div><div><b>Время:</b> ${t.time}</div>
+                    <div><b>X:</b> ${t.x||'-'}</div><div><b>Y:</b> ${t.y||'-'}</div>
+                    ${t.frequency ? `<div><b>Частота:</b> ${t.frequency}</div>` : ''}
+                </div>
+                <div class="mt-4"><b>Примечание:</b><br><div class="bg-zinc-50 p-3 rounded-lg">${t.note || '—'}</div></div>
+            `;
+            document.getElementById('detailModal').classList.remove('hidden');
+        }
+
+        function showDetailById(id) {
+            const target = allTargets.find(t => t.id === id);
+            if (target) showDetail(target);
+        }
+
+        function closeModal() { document.getElementById('detailModal').classList.add('hidden'); }
+
+        async function deleteTarget(id) {
+            if (confirm('Удалить цель?')) {
+                await supabase.from('targets').delete().eq('id', id);
+                loadTargets();
+                closeModal();
+            }
+        }
+
+        function deleteCurrent() { if (currentId) deleteTarget(currentId); }
+
+        function updateDashboard() {
+            const total = allTargets.length;
+            document.getElementById('totalCount').textContent = total;
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('todayCount').textContent = allTargets.filter(t => t.date === today).length;
+
+            const types = {};
+            allTargets.forEach(t => types[t.type] = (types[t.type]||0)+1);
+            document.getElementById('typesCount').textContent = Object.keys(types).length;
+
+            let chart = '';
+            Object.keys(types).forEach(key => {
+                const c = types[key];
+                chart += `<div class="flex justify-between mb-1"><span>${key}</span><span class="font-medium">${c}</span></div>
+                          <div class="h-2 bg-gray-200 rounded mb-4"><div class="h-2 bg-[#6B1E2A] rounded" style="width:${Math.round(c/total*100)}%"></div></div>`;
+            });
+            document.getElementById('typeChart').innerHTML = chart || 'Нет данных';
+        }
+
+        function switchTab(n) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.getElementById('content' + n).classList.add('active');
+            document.querySelectorAll('.nav-tab').forEach((el, i) => el.classList.toggle('active', i === n));
+            if (n === 2 && map) setTimeout(() => map.invalidateSize(), 300);
+        }
 
         window.onload = init;
     </script>
