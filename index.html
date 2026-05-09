@@ -4,153 +4,372 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Система фиксации целей</title>
+
+    <link rel="icon" href="data:,">
+
     <script src="https://cdn.tailwindcss.com"></script>
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.12.0/proj4.js"></script>
+
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+
     <style>
+
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-        body { font-family: 'Inter', system_ui, sans-serif; }
-        
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+        }
+
         .glass {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(16px);
+            background: rgba(15, 23, 42, 0.92);
+            backdrop-filter: blur(20px);
         }
-        
+
         .card-hover:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+            transform: translateY(-6px);
+            box-shadow:
+                0 20px 25px -5px rgb(0 0 0 / 0.25),
+                0 8px 10px -6px rgb(0 0 0 / 0.25);
         }
-        
+
         .input-focus:focus {
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow:
+                0 0 0 4px rgba(59,130,246,.25);
         }
+
+        table {
+            border-collapse: collapse;
+        }
+
+        td,
+        th {
+            vertical-align: top;
+        }
+
     </style>
+
 </head>
-<body class="bg-gradient-to-br from-slate-950 via-blue-950 to-slate-950 text-slate-200 min-h-screen">
-    <div class="max-w-7xl mx-auto p-8">
-        <div class="flex justify-between items-center mb-10">
-            <div class="flex items-center gap-4">
-                <div class="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-3xl shadow-lg shadow-blue-500/50">🎯</div>
-                <div>
-                    <h1 class="text-4xl font-bold tracking-tight">Фиксация целей</h1>
-                    <p class="text-slate-400">Тактическая система наблюдения</p>
-                </div>
+
+<body class="bg-gradient-to-br from-slate-950 via-blue-950 to-slate-950 text-slate-100 min-h-screen">
+
+<div class="max-w-7xl mx-auto p-8">
+
+    <!-- HEADER -->
+
+    <div class="flex justify-between items-center mb-10">
+
+        <div class="flex items-center gap-4">
+
+            <div class="w-14 h-14 bg-blue-600 rounded-3xl flex items-center justify-center text-3xl shadow-lg shadow-blue-500/50">
+                🎯
             </div>
-            
-            <button onclick="exportToExcel()" 
-                    class="flex items-center gap-3 bg-emerald-600 hover:bg-emerald-700 px-6 py-3 rounded-2xl font-semibold transition-all active:scale-95">
-                <i class="fa-solid fa-file-excel"></i>
-                <span>Сохранить в Excel</span>
-            </button>
+
+            <div>
+
+                <h1 class="text-5xl font-bold tracking-tight text-white">
+                    Фиксация целей
+                </h1>
+
+                <p class="text-slate-300 text-lg mt-1">
+                    Тактическая система наблюдения • СК-42 Украина
+                </p>
+
+            </div>
+
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            <!-- Форма -->
-            <div class="lg:col-span-5">
-                <div class="glass rounded-3xl p-8 border border-white/10 shadow-2xl card-hover">
-                    <h2 class="text-2xl font-semibold mb-6 flex items-center gap-3">
-                        <i class="fa-solid fa-plus-circle text-blue-400"></i>
-                        Новая запись
-                    </h2>
-                    
-                    <form id="dataForm" class="space-y-6">
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-slate-400 mb-1.5">Дата</label>
-                                <input type="date" id="date" class="input-focus w-full bg-slate-900 border border-slate-700 rounded-2xl px-5 py-4 text-lg">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-slate-400 mb-1.5">Время</label>
-                                <input type="time" id="time" class="input-focus w-full bg-slate-900 border border-slate-700 rounded-2xl px-5 py-4 text-lg">
-                            </div>
-                        </div>
+        <button
+                onclick="exportToExcel()"
+                class="flex items-center gap-3 bg-emerald-600 hover:bg-emerald-700 px-6 py-4 rounded-3xl font-semibold transition-all active:scale-95 text-lg"
+        >
 
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-slate-400 mb-1.5">Координата X</label>
-                                <input type="number" step="0.000001" id="x" placeholder="55.123456" class="input-focus w-full bg-slate-900 border border-slate-700 rounded-2xl px-5 py-4 text-lg">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-slate-400 mb-1.5">Координата Y</label>
-                                <input type="number" step="0.000001" id="y" placeholder="37.567890" class="input-focus w-full bg-slate-900 border border-slate-700 rounded-2xl px-5 py-4 text-lg">
-                            </div>
-                        </div>
+            <i class="fa-solid fa-file-excel"></i>
 
-                        <div>
-                            <label class="block text-sm font-medium text-slate-400 mb-1.5">Тип цели</label>
-                            <select id="targetType" class="input-focus w-full bg-slate-900 border border-slate-700 rounded-2xl px-5 py-4 text-lg">
-                                <option value="">Выберите тип</option>
-                                <option value="Пехота">Пехота</option>
-                                <option value="Техника">Техника</option>
-                                <option value="Артиллерия">Артиллерия</option>
-                                <option value="БПЛА">БПЛА</option>
-                                <option value="ПВО">ПВО</option>
-                                <option value="РЭБ">РЭБ</option>
-                                <option value="Другое">Другое</option>
-                            </select>
-                        </div>
+            <span>
+                Сохранить Excel
+            </span>
 
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-slate-400 mb-1.5">Обнаружил</label>
-                                <input type="text" id="detectedBy" placeholder="Иванов А." class="input-focus w-full bg-slate-900 border border-slate-700 rounded-2xl px-5 py-4 text-lg">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-slate-400 mb-1.5">Частота (МГц)</label>
-                                <input type="number" step="0.1" id="frequency" placeholder="148.5" class="input-focus w-full bg-slate-900 border border-slate-700 rounded-2xl px-5 py-4 text-lg">
-                            </div>
-                        </div>
+        </button>
 
-                        <div>
-                            <label class="block text-sm font-medium text-slate-400 mb-1.5">Примечание</label>
-                            <textarea id="note" rows="3" placeholder="Дополнительная информация..." class="input-focus w-full bg-slate-900 border border-slate-700 rounded-3xl px-5 py-4 text-lg resize-none"></textarea>
-                        </div>
-
-                        <button type="button" onclick="saveRecord()" 
-                                class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 py-5 rounded-3xl font-semibold text-xl flex items-center justify-center gap-3">
-                            <i class="fa-solid fa-floppy-disk"></i>
-                            Сохранить запись
-                        </button>
-                    </form>
-                </div>
-            </div>
-
-            <!-- Таблица -->
-            <div class="lg:col-span-7">
-                <div class="glass rounded-3xl overflow-hidden border border-white/10 shadow-2xl h-full flex flex-col">
-                    <div class="px-8 py-6 border-b border-white/10 flex justify-between bg-slate-900/50">
-                        <h2 class="text-2xl font-semibold flex items-center gap-3">
-                            <i class="fa-solid fa-list"></i>
-                            Журнал наблюдений
-                        </h2>
-                        <button onclick="loadRecords()" class="flex items-center gap-2 text-slate-400 hover:text-white">
-                            <i class="fa-solid fa-arrows-rotate"></i> Обновить
-                        </button>
-                    </div>
-                    <div class="flex-1 overflow-auto" style="max-height: calc(100vh - 280px)">
-                        <table id="recordsTable" class="w-full text-sm">
-                            <thead class="sticky top-0 bg-slate-900/95 backdrop-blur-md">
-                                <tr class="border-b border-white/10">
-                                    <th class="px-6 py-4 text-left">Дата</th>
-                                    <th class="px-6 py-4 text-left">Время</th>
-                                    <th class="px-6 py-4 text-left">Координаты</th>
-                                    <th class="px-6 py-4 text-left">Тип цели</th>
-                                    <th class="px-6 py-4 text-left">Обнаружил</th>
-                                    <th class="px-6 py-4 text-left">Частота</th>
-                                    <th class="px-6 py-4 text-left">Примечание</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tableBody" class="divide-y divide-white/10"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
 
-    <div id="toast" class="hidden fixed bottom-6 right-6 px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 text-white"></div>
+    <!-- CONTENT -->
 
-    <script>
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+        <!-- FORM -->
+
+        <div class="lg:col-span-5">
+
+            <div class="glass rounded-3xl p-8 border border-white/10 shadow-2xl card-hover">
+
+                <h2 class="text-3xl font-semibold mb-8 flex items-center gap-3 text-white">
+
+                    <i class="fa-solid fa-plus-circle text-blue-400"></i>
+
+                    Новая запись
+
+                </h2>
+
+                <form id="dataForm" class="space-y-6">
+
+                    <div class="grid grid-cols-2 gap-4">
+
+                        <div>
+
+                            <label class="block text-sm font-medium text-slate-300 mb-2">
+                                Дата
+                            </label>
+
+                            <input
+                                    type="date"
+                                    id="date"
+                                    class="input-focus w-full bg-slate-900 border border-slate-700 rounded-2xl px-5 py-4 text-lg text-white"
+                            >
+
+                        </div>
+
+                        <div>
+
+                            <label class="block text-sm font-medium text-slate-300 mb-2">
+                                Время
+                            </label>
+
+                            <input
+                                    type="time"
+                                    id="time"
+                                    class="input-focus w-full bg-slate-900 border border-slate-700 rounded-2xl px-5 py-4 text-lg text-white"
+                            >
+
+                        </div>
+
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+
+                        <div>
+
+                            <label class="block text-sm font-medium text-slate-300 mb-2">
+                                X (СК-42)
+                            </label>
+
+                            <input
+                                    type="number"
+                                    step="0.01"
+                                    id="x"
+                                    placeholder="5301923"
+                                    class="input-focus w-full bg-slate-900 border border-slate-700 rounded-2xl px-5 py-4 text-lg text-white"
+                            >
+
+                        </div>
+
+                        <div>
+
+                            <label class="block text-sm font-medium text-slate-300 mb-2">
+                                Y (СК-42)
+                            </label>
+
+                            <input
+                                    type="number"
+                                    step="0.01"
+                                    id="y"
+                                    placeholder="6662759"
+                                    class="input-focus w-full bg-slate-900 border border-slate-700 rounded-2xl px-5 py-4 text-lg text-white"
+                            >
+
+                        </div>
+
+                    </div>
+
+                    <div>
+
+                        <label class="block text-sm font-medium text-slate-300 mb-2">
+                            Тип цели
+                        </label>
+
+                        <input
+                                type="text"
+                                id="targetType"
+                                placeholder="Введите тип цели"
+                                class="input-focus w-full bg-slate-900 border border-slate-700 rounded-2xl px-5 py-4 text-lg text-white"
+                        >
+
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+
+                        <div>
+
+                            <label class="block text-sm font-medium text-slate-300 mb-2">
+                                Обнаружил
+                            </label>
+
+                            <input
+                                    type="text"
+                                    id="detectedBy"
+                                    placeholder="Иванов А."
+                                    class="input-focus w-full bg-slate-900 border border-slate-700 rounded-2xl px-5 py-4 text-lg text-white"
+                            >
+
+                        </div>
+
+                        <div>
+
+                            <label class="block text-sm font-medium text-slate-300 mb-2">
+                                Частота (МГц)
+                            </label>
+
+                            <input
+                                    type="number"
+                                    step="0.1"
+                                    id="frequency"
+                                    placeholder="148.5"
+                                    class="input-focus w-full bg-slate-900 border border-slate-700 rounded-2xl px-5 py-4 text-lg text-white"
+                            >
+
+                        </div>
+
+                    </div>
+
+                    <div>
+
+                        <label class="block text-sm font-medium text-slate-300 mb-2">
+                            Примечание
+                        </label>
+
+                        <textarea
+                                id="note"
+                                rows="4"
+                                placeholder="Дополнительная информация..."
+                                class="input-focus w-full bg-slate-900 border border-slate-700 rounded-3xl px-5 py-4 text-lg text-white resize-none leading-relaxed"
+                        ></textarea>
+
+                    </div>
+
+                    <button
+                            type="button"
+                            onclick="saveRecord()"
+                            class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 py-5 rounded-3xl font-semibold text-xl flex items-center justify-center gap-3"
+                    >
+
+                        <i class="fa-solid fa-floppy-disk"></i>
+
+                        Сохранить запись
+
+                    </button>
+
+                </form>
+
+            </div>
+
+        </div>
+
+        <!-- TABLE -->
+
+        <div class="lg:col-span-7">
+
+            <div class="glass rounded-3xl overflow-hidden border border-white/10 shadow-2xl h-full flex flex-col">
+
+                <div class="px-8 py-6 border-b border-white/10 flex justify-between bg-slate-900/50">
+
+                    <h2 class="text-3xl font-semibold flex items-center gap-3 text-white">
+
+                        <i class="fa-solid fa-list"></i>
+
+                        Журнал наблюдений
+
+                    </h2>
+
+                    <button
+                            onclick="loadRecords()"
+                            class="flex items-center gap-2 text-slate-300 hover:text-white text-lg"
+                    >
+
+                        <i class="fa-solid fa-arrows-rotate"></i>
+
+                        Обновить
+
+                    </button>
+
+                </div>
+
+                <div class="flex-1 overflow-auto"
+                     style="max-height: calc(100vh - 280px)">
+
+                    <table id="recordsTable"
+                           class="w-full text-base">
+
+                        <thead class="sticky top-0 bg-slate-900/95 backdrop-blur-md">
+
+                        <tr class="border-b border-white/10">
+
+                            <th class="px-6 py-5 text-left text-slate-200">
+                                Дата
+                            </th>
+
+                            <th class="px-6 py-5 text-left text-slate-200">
+                                Время
+                            </th>
+
+                            <th class="px-6 py-5 text-left text-slate-200">
+                                Координаты
+                            </th>
+
+                            <th class="px-6 py-5 text-left text-slate-200">
+                                Тип цели
+                            </th>
+
+                            <th class="px-6 py-5 text-left text-slate-200">
+                                Обнаружил
+                            </th>
+
+                            <th class="px-6 py-5 text-left text-slate-200">
+                                Частота
+                            </th>
+
+                            <th class="px-6 py-5 text-left text-slate-200">
+                                Примечание
+                            </th>
+
+                        </tr>
+
+                        </thead>
+
+                        <tbody id="tableBody"
+                               class="divide-y divide-white/10">
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- TOAST -->
+
+<div
+        id="toast"
+        class="hidden fixed bottom-6 right-6 px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 text-white text-lg z-50"
+></div>
+
+<script>
+
+    // =====================================================
+    // SUPABASE
+    // =====================================================
 
     const { createClient } = supabase;
 
@@ -587,5 +806,6 @@
     };
 
 </script>
+
 </body>
 </html>
