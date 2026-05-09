@@ -151,104 +151,441 @@
     <div id="toast" class="hidden fixed bottom-6 right-6 px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 text-white"></div>
 
     <script>
-        // Правильная инициализация Supabase с CDN
-        const { createClient } = supabase;
-        const supabaseUrl = 'https://znislbxlwnwdbgumtlwo.supabase.co';
-        const supabaseKey = 'sb_publishable_NEb6KHHpx5aYLyEZl6U1OA_y68ZalLF';
-        const db = createClient(supabaseUrl, supabaseKey);
 
-        function setCurrentDateTime() {
-            const now = new Date();
-            document.getElementById('date').value = now.toISOString().split('T')[0];
-            document.getElementById('time').value = now.toTimeString().slice(0,5);
-        }
+    const { createClient } = supabase;
 
-        async function saveRecord() {
-            const record = {
-                date: document.getElementById('date').value,
-                time: document.getElementById('time').value,
-                x: parseFloat(document.getElementById('x').value),
-                y: parseFloat(document.getElementById('y').value),
-                target_type: document.getElementById('targetType').value,
-                detected_by: document.getElementById('detectedBy').value,
-                frequency: parseFloat(document.getElementById('frequency').value) || null,
-                note: document.getElementById('note').value,
-                created_at: new Date().toISOString()
+    const supabaseUrl =
+        'https://znislbxlwnwdbgumtlwo.supabase.co';
+
+    const supabaseKey =
+        'sb_publishable_NEb6KHHpx5aYLyEZl6U1OA_y68ZalLF';
+
+    const db = createClient(
+        supabaseUrl,
+        supabaseKey
+    );
+
+    // =====================================================
+    // СК-42 УКРАИНА
+    // =====================================================
+
+    function getSK42Zone(y) {
+
+        return Math.floor(y / 1000000);
+
+    }
+
+    function getProj4Def(zone) {
+
+        const lon0 = zone * 6 - 3;
+
+        const falseEasting =
+            zone * 1000000 + 500000;
+
+        return "+proj=tmerc " +
+            "+lat_0=0 " +
+            "+lon_0=" + lon0 + " " +
+            "+k=1 " +
+            "+x_0=" + falseEasting + " " +
+            "+y_0=0 " +
+            "+ellps=krass " +
+            "+towgs84=23.92,-141.27,-80.9,0,0.35,0.82,-0.12 " +
+            "+units=m " +
+            "+no_defs";
+
+    }
+
+    function convertSK42toWGS84(x, y) {
+
+        try {
+
+            const zone = getSK42Zone(y);
+
+            const projName =
+                "SK42_ZONE_" + zone;
+
+            const projString =
+                getProj4Def(zone);
+
+            proj4.defs(
+                projName,
+                projString
+            );
+
+            const result = proj4(
+                projName,
+                "WGS84",
+                [y, x]
+            );
+
+            return {
+
+                lat: result[1],
+
+                lon: result[0],
+
+                zone: zone
+
             };
 
-            if (!record.date || !record.time || isNaN(record.x) || isNaN(record.y) || !record.target_type) {
-                showToast('Заполните обязательные поля!', true);
-                return;
-            }
+        } catch (e) {
 
-            try {
-                const { error } = await db.from('observations').insert([record]);
-                if (error) throw error;
+            console.error(
+                "Ошибка СК-42:",
+                e
+            );
 
-                showToast('Запись успешно сохранена!');
-                document.getElementById('dataForm').reset();
-                setCurrentDateTime();
-                loadRecords();
-            } catch (error) {
-                console.error(error);
-                showToast('Ошибка: ' + error.message, true);
-            }
+            return null;
+
         }
 
-        async function loadRecords() {
-            try {
-                const { data, error } = await db
+    }
+
+    // =====================================================
+    // DATE/TIME
+    // =====================================================
+
+    function setCurrentDateTime() {
+
+        const now = new Date();
+
+        document.getElementById('date').value =
+            now.toISOString().split('T')[0];
+
+        document.getElementById('time').value =
+            now.toTimeString().slice(0,5);
+
+    }
+
+    // =====================================================
+    // SAVE RECORD
+    // =====================================================
+
+    async function saveRecord() {
+
+        const x = parseFloat(
+            document.getElementById('x').value
+        );
+
+        const y = parseFloat(
+            document.getElementById('y').value
+        );
+
+        const converted =
+            convertSK42toWGS84(x, y);
+
+        const record = {
+
+            date:
+                document.getElementById('date').value,
+
+            time:
+                document.getElementById('time').value,
+
+            x: x,
+
+            y: y,
+
+            lat:
+                converted
+                    ? converted.lat
+                    : null,
+
+            lon:
+                converted
+                    ? converted.lon
+                    : null,
+
+            target_type:
+                document.getElementById('targetType').value,
+
+            detected_by:
+                document.getElementById('detectedBy').value,
+
+            frequency:
+                parseFloat(
+                    document.getElementById('frequency').value
+                ) || null,
+
+            note:
+                document.getElementById('note').value,
+
+            created_at:
+                new Date().toISOString()
+
+        };
+
+        if (
+            !record.date ||
+            !record.time ||
+            isNaN(record.x) ||
+            isNaN(record.y) ||
+            !record.target_type
+        ) {
+
+            showToast(
+                'Заполните обязательные поля!',
+                true
+            );
+
+            return;
+
+        }
+
+        try {
+
+            const { error } =
+                await db
+                    .from('observations')
+                    .insert([record]);
+
+            if (error) {
+                throw error;
+            }
+
+            showToast(
+                'Запись успешно сохранена!'
+            );
+
+            document
+                .getElementById('dataForm')
+                .reset();
+
+            setCurrentDateTime();
+
+            loadRecords();
+
+        } catch (error) {
+
+            console.error(error);
+
+            showToast(
+                'Ошибка: ' + error.message,
+                true
+            );
+
+        }
+
+    }
+
+    // =====================================================
+    // LOAD RECORDS
+    // =====================================================
+
+    async function loadRecords() {
+
+        try {
+
+            const { data, error } =
+                await db
                     .from('observations')
                     .select('*')
-                    .order('created_at', { ascending: false });
+                    .order(
+                        'created_at',
+                        {
+                            ascending: false
+                        }
+                    );
 
-                if (error) throw error;
-                renderTable(data || []);
-            } catch (error) {
-                console.error(error);
-                showToast('Ошибка загрузки данных', true);
+            if (error) {
+                throw error;
             }
+
+            renderTable(data || []);
+
+        } catch (error) {
+
+            console.error(error);
+
+            showToast(
+                'Ошибка загрузки данных',
+                true
+            );
+
         }
 
-        function renderTable(records) {
-            const tbody = document.getElementById('tableBody');
-            tbody.innerHTML = records.length === 0 
-                ? `<tr><td colspan="7" class="px-6 py-12 text-center text-slate-400">Пока нет записей</td></tr>`
-                : records.map(r => `
-                    <tr class="hover:bg-white/5 transition-colors">
-                        <td class="px-6 py-4">${r.date}</td>
-                        <td class="px-6 py-4">${r.time}</td>
-                        <td class="px-6 py-4 font-mono text-blue-400">${r.x}, ${r.y}</td>
-                        <td class="px-6 py-4"><span class="px-3 py-1 bg-blue-900/60 text-blue-300 rounded-full text-xs">${r.target_type}</span></td>
-                        <td class="px-6 py-4">${r.detected_by || '—'}</td>
-                        <td class="px-6 py-4">${r.frequency ? r.frequency + ' МГц' : '—'}</td>
-                        <td class="px-6 py-4 text-slate-400 max-w-xs truncate">${r.note || '—'}</td>
-                    </tr>
-                `).join('');
-        }
+    }
 
-        function exportToExcel() {
-            const table = document.getElementById('recordsTable');
-            if (!table) return;
-            const link = document.createElement('a');
-            link.href = 'data:application/vnd.ms-excel;base64,' + window.btoa(unescape(encodeURIComponent(table.outerHTML)));
-            link.download = `цели_${new Date().toISOString().slice(0,10)}.xls`;
-            link.click();
-            showToast('Файл Excel скачивается...');
-        }
+    // =====================================================
+    // TABLE
+    // =====================================================
 
-        function showToast(message, isError = false) {
-            const toast = document.getElementById('toast');
-            toast.textContent = message;
-            toast.className = `fixed bottom-6 right-6 px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 text-white ${isError ? 'bg-red-600' : 'bg-emerald-600'}`;
-            toast.classList.remove('hidden');
-            setTimeout(() => toast.classList.add('hidden'), 3000);
-        }
+    function renderTable(records) {
 
-        window.onload = () => {
-            setCurrentDateTime();
-            loadRecords();
-        };
-    </script>
+        const tbody =
+            document.getElementById('tableBody');
+
+        tbody.innerHTML =
+            records.length === 0
+
+            ? `
+                <tr>
+
+                    <td
+                        colspan="7"
+                        class="px-6 py-12 text-center text-slate-400 text-lg"
+                    >
+                        Пока нет записей
+                    </td>
+
+                </tr>
+            `
+
+            : records.map(r => `
+
+                <tr class="hover:bg-white/5 transition-colors border-b border-white/5">
+
+                    <td class="px-6 py-5 text-base font-medium text-white">
+                        ${r.date}
+                    </td>
+
+                    <td class="px-6 py-5 text-base text-slate-300">
+                        ${r.time}
+                    </td>
+
+                    <td class="px-6 py-5">
+
+                        <div class="font-mono text-blue-300 text-sm">
+                            X: ${r.x}
+                        </div>
+
+                        <div class="font-mono text-cyan-300 text-sm mt-1">
+                            Y: ${r.y}
+                        </div>
+
+                        ${
+                            r.lat && r.lon
+                            ? `
+                                <div class="text-emerald-300 text-xs mt-2">
+                                    ${r.lat.toFixed(6)},
+                                    ${r.lon.toFixed(6)}
+                                </div>
+                            `
+                            : ''
+                        }
+
+                    </td>
+
+                    <td class="px-6 py-5">
+
+                        <span class="px-4 py-1.5 bg-blue-900/60 text-blue-200 rounded-full text-sm font-medium">
+
+                            ${r.target_type}
+
+                        </span>
+
+                    </td>
+
+                    <td class="px-6 py-5 text-slate-200 text-base">
+                        ${r.detected_by || '—'}
+                    </td>
+
+                    <td class="px-6 py-5 text-slate-200 text-base">
+
+                        ${
+                            r.frequency
+                            ? r.frequency + ' МГц'
+                            : '—'
+                        }
+
+                    </td>
+
+                    <td class="px-6 py-5 text-slate-300 text-sm leading-relaxed max-w-sm">
+
+                        ${r.note || '—'}
+
+                    </td>
+
+                </tr>
+
+            `).join('');
+
+    }
+
+    // =====================================================
+    // EXPORT
+    // =====================================================
+
+    function exportToExcel() {
+
+        const table =
+            document.getElementById(
+                'recordsTable'
+            );
+
+        if (!table) return;
+
+        const link =
+            document.createElement('a');
+
+        link.href =
+            'data:application/vnd.ms-excel;base64,' +
+            window.btoa(
+                unescape(
+                    encodeURIComponent(
+                        table.outerHTML
+                    )
+                )
+            );
+
+        link.download =
+            `цели_${
+                new Date()
+                    .toISOString()
+                    .slice(0,10)
+            }.xls`;
+
+        link.click();
+
+        showToast(
+            'Excel файл скачивается...'
+        );
+
+    }
+
+    // =====================================================
+    // TOAST
+    // =====================================================
+
+    function showToast(
+        message,
+        isError = false
+    ) {
+
+        const toast =
+            document.getElementById('toast');
+
+        toast.textContent = message;
+
+        toast.className =
+            `fixed bottom-6 right-6 px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 text-white text-lg ${
+                isError
+                ? 'bg-red-600'
+                : 'bg-emerald-600'
+            }`;
+
+        toast.classList.remove('hidden');
+
+        setTimeout(() => {
+
+            toast.classList.add('hidden');
+
+        }, 3000);
+
+    }
+
+    // =====================================================
+    // START
+    // =====================================================
+
+    window.onload = () => {
+
+        setCurrentDateTime();
+
+        loadRecords();
+
+    };
+
+</script>
 </body>
 </html>
